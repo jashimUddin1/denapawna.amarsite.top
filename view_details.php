@@ -18,8 +18,6 @@ if (!isset($_GET['people_id'])) {
     exit();
 }
 
-
-
 $people_id = $_GET['people_id'];
 
 // ব্যক্তির তথ্য বের করা
@@ -63,12 +61,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->bind_param("iisssdis", $user_id, $people_id, $date, $type, $method, $amount, $new_balance, $remark);
     $stmt->execute();
 
-     // creditors টেবিলের balance আপডেট করা
-     $update_creditor = $con->prepare("UPDATE creditors SET amount = ? WHERE id = ? AND user_id = ?");
-     $update_creditor->bind_param("dii", $new_balance, $people_id, $user_id);
-     $update_creditor->execute();
+    // creditors টেবিলের balance আপডেট করা
+    $update_creditor = $con->prepare("UPDATE creditors SET amount = ? WHERE id = ? AND user_id = ?");
+    $update_creditor->bind_param("dii", $new_balance, $people_id, $user_id);
+    $update_creditor->execute();
 
     header("Location: view_details.php?people_id=" . $people_id);
+    exit();
 }
 ?>
 
@@ -77,65 +76,129 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $people['name']; ?> - Details</title>
+    <title><?php echo htmlspecialchars($people['name']); ?> - Details</title>
     <link rel="stylesheet" href="css/view_details.css">
+    <style>
+        .remark-short {
+            cursor: pointer;
+            color: #2563eb;
+            text-decoration: underline;
+            font-weight: 500;
+        }
+        .remark-short:hover {
+            color: #1d4ed8;
+        }
+        /* Remark Popup Modal */
+        #remarkModal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.55);
+            align-items: center;
+            justify-content: center;
+        }
+        .remark-modal-box {
+            background: #ffffff;
+            padding: 20px 24px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 460px;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            animation: fadeInScale 0.2s ease;
+        }
+        .remark-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 10px;
+            margin-bottom: 14px;
+        }
+        .remark-modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #1e293b;
+        }
+        .remark-close-btn {
+            font-size: 24px;
+            font-weight: bold;
+            color: #64748b;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .remark-close-btn:hover {
+            color: #0f172a;
+        }
+        #fullRemarkText {
+            margin: 0;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #334155;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
 </head>
 <body>
 
 <?php include 'includes/view_header.php' ?>
 
-  <!-- Success Message -->
-  <?php if (isset($_GET['success'])): ?>
-        <div id="success-message" class="success-message">
-            ✅ Transaction Updated Successfully!
-            <span class="close-btn" onclick="closeSuccessMessage()">❌</span>
-        </div>
-  <?php endif; ?>
+<!-- Success Message -->
+<?php if (isset($_GET['success'])): ?>
+    <div id="success-message" class="success-message">
+        ✅ Transaction Updated Successfully!
+        <span class="close-btn" onclick="closeSuccessMessage()">❌</span>
+    </div>
+<?php endif; ?>
 
 <div class="container">
 
     <table id="transactionTable" class="data-table">
         <thead>
             <tr>
-                <th class="table-heading" colspan="7"><?php echo $people['name']; ?></th>
+                <th class="table-heading" colspan="7"><?php echo htmlspecialchars($people['name']); ?></th>
             </tr>
         </thead>
         <tr>
-                <td colspan="7">
+            <td colspan="7">
                 <form method="post" class="">
-                <div class="transaction-form">
-                    <div class="input-field">
-                        <input type="date" name="date">
+                    <div class="transaction-form">
+                        <div class="input-field">
+                            <input type="date" name="date">
+                        </div>
+                        <div class="input-field">
+                            <select name="type">
+                                <option value="given">Given</option>
+                                <option value="taken">Taken</option>
+                            </select>
+                        </div>
+                        <div class="input-field">
+                            <select name="method">
+                                <option value="Cash">Cash</option>
+                                <option value="Bkash">Bkash</option>
+                                <option value="Nogod">Nogod</option>
+                                <option value="Rocket">Rocket</option>
+                                <option value="City Bank">City Bank</option>
+                                <option value="Others">Others</option>
+                            </select>
+                        </div>
+                        <div class="input-field">
+                            <input type="number" name="amount" required placeholder="Enter amount">
+                        </div>
+                        <div class="input-field">
+                            <input type="text" name="remark" placeholder="Enter Note">
+                        </div>
+                        <button type="submit" class="submit-btn">Submit</button>
                     </div>
-                    <div class="input-field">
-                        <select name="type">
-                            <option value="given">Given</option>
-                            <option value="taken">Taken</option>
-                        </select>
-                    </div>
-                    <div class="input-field">
-                        <select name="method">
-                            <option value="Cash">Cash</option>
-                            <option value="Bkash">Bkash</option>
-                            <option value="Nogod">Nogod</option>
-                           <option value="Rocket">Rocket</option>
-                            <option value="City Bank">City Bank</option>
-                            <option value="Others">Others</option>
-                        </select>
-                    </div>
-                    <div class="input-field">
-                        <input type="number" name="amount" required placeholder="Enter amount">
-                    </div>
-
-                    <div class="input-field">
-                        <input type="text" name="remark" placeholder="Enter Note">
-                    </div>
-                    
-                    <button type="submit" class="submit-btn">Submit</button>
-                </div>
                 </form>
-                </td>
-            </tr>
+            </td>
+        </tr>
         <thead>
             <tr>
                 <th>Date</th>
@@ -158,11 +221,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     echo ($formattedDate == "30-11--0001") ? "Not Sure" : $formattedDate;
                     ?>
                 </td>
-                <td><?php echo $row['type']; ?></td>
-                <td><?php echo $row['method']; ?></td>
+                <td><?php echo htmlspecialchars($row['type']); ?></td>
+                <td><?php echo htmlspecialchars($row['method']); ?></td>
                 <td><?php echo number_format($row['amount']); ?></td>
                 <td><?php echo number_format($row['balance']); ?></td>
-                <td><?php echo $row['remark']; ?></td>
+                <td>
+                    <?php 
+                    $remark = $row['remark'] ?? '';
+                    $remarkLen = function_exists('mb_strlen') ? mb_strlen($remark, 'UTF-8') : strlen($remark);
+
+                    if ($remarkLen > 20) {
+                        $shortRemark = function_exists('mb_substr') ? mb_substr($remark, 0, 20, 'UTF-8') : substr($remark, 0, 20);
+                        echo '<span class="remark-short" title="Click to view full remark" data-remark="' . htmlspecialchars($remark, ENT_QUOTES, 'UTF-8') . '" onclick="openRemarkModal(this)">'
+                            . htmlspecialchars($shortRemark, ENT_QUOTES, 'UTF-8') . '...'
+                            . '</span>';
+                    } else {
+                        echo htmlspecialchars($remark, ENT_QUOTES, 'UTF-8');
+                    }
+                    ?>
+                </td>
                 <td>
                     <a href="edit_data.php?row_id=<?php echo $row['id']; ?>" class="edit-btn">Edit</a>
                     <a onclick="return confirm('are you sure?')" href="delete_data.php?row_id=<?php echo $row['id']; ?>" class="delete-btn">Delete</a>
@@ -171,6 +248,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <?php } ?>
         </tbody>
     </table>
+</div>
+
+<!-- Remark Popup Modal -->
+<div id="remarkModal">
+    <div class="remark-modal-box">
+        <div class="remark-modal-header">
+            <h3>Remark Details</h3>
+            <span class="remark-close-btn" onclick="closeRemarkModal()">&times;</span>
+        </div>
+        <p id="fullRemarkText"></p>
+    </div>
 </div>
 
 <!-- Modal for adding new creditor -->
@@ -187,27 +275,45 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </div>
 
 <script>
-  // Get the modal and buttons
+    // Remark Popup Functions
+    function openRemarkModal(el) {
+        const fullText = el.getAttribute('data-remark');
+        document.getElementById('fullRemarkText').textContent = fullText;
+        document.getElementById('remarkModal').style.display = 'flex';
+    }
+
+    function closeRemarkModal() {
+        document.getElementById('remarkModal').style.display = 'none';
+        document.getElementById('fullRemarkText').textContent = '';
+    }
+
+    // Get the modal and buttons
     var modal = document.getElementById("myModal");
     var btn = document.getElementById("addNewBtn");
     var span = document.getElementsByClassName("close")[0];
 
-    // Open the modal
-    btn.onclick = function() {
-        modal.style.display = "block";
+    if (btn) {
+        btn.onclick = function() {
+            modal.style.display = "block";
+        }
     }
 
-    // Close the modal
-    span.onclick = function() {
-        modal.style.display = "none";
-    }
-
-    // Close the modal if the user clicks outside of it
-    window.onclick = function(event) {
-        if (event.target == modal) {
+    if (span) {
+        span.onclick = function() {
             modal.style.display = "none";
         }
     }
+
+    // যেকোনো মডালের বাইরে ক্লিক করলে বন্ধ হবে
+    window.addEventListener('click', function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+        var remarkModal = document.getElementById("remarkModal");
+        if (event.target == remarkModal) {
+            closeRemarkModal();
+        }
+    });
 
     // Handle form submission via AJAX
     document.getElementById("addPersonForm").onsubmit = function(event) {
@@ -221,7 +327,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if (xhr.status == 200) {
                 alert('Person added successfully');
                 modal.style.display = "none";
-                window.location.reload();  // Reload the page to see the new person
+                window.location.reload();
             } else {
                 alert('Something went wrong');
             }
@@ -229,47 +335,47 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         xhr.send(formData);
     };
     
-document.addEventListener("DOMContentLoaded", function () {
-    let table = document.getElementById("transactionTable"); // টেবিলের ID সেট করো
+    document.addEventListener("DOMContentLoaded", function () {
+        let table = document.getElementById("transactionTable");
 
-    if (table) {
-        let rows = table.getElementsByTagName("tr");
-        let balance = 0;
+        if (table) {
+            let rows = table.getElementsByTagName("tr");
+            let balance = 0;
 
-        for (let i = rows.length - 1; i > 0; i--) { // উল্টোভাবে লুপ চালাবো, যেন ব্যালেন্স ঠিক থাকে
-            let cells = rows[i].getElementsByTagName("td");
+            for (let i = rows.length - 1; i > 0; i--) {
+                let cells = rows[i].getElementsByTagName("td");
 
-            if (cells.length > 0) {
-                let amount = parseFloat(cells[3].innerText.replace(/,/g, "")) || 0; // Amount কলামের ডাটা
-                let type = cells[1].innerText.trim(); // Type কলাম
+                if (cells.length > 0) {
+                    let amount = parseFloat(cells[3].innerText.replace(/,/g, "")) || 0;
+                    let type = cells[1].innerText.trim();
 
-                if (type === "given") {
-                    balance += amount; // Given হলে balance বাড়বে
-                } else if (type === "taken") {
-                    balance -= amount; // Taken হলে balance কমবে
+                    if (type === "given") {
+                        balance += amount;
+                    } else if (type === "taken") {
+                        balance -= amount;
+                    }
+
+                    cells[4].innerText = balance.toLocaleString();
                 }
-
-                cells[4].innerText = balance.toLocaleString(); // Balance আপডেট করা হচ্ছে
             }
         }
-    }
-});
+    });
 
-// Success Message দেখানোর জন্য
-window.onload = function() {
+    // Success Message দেখানোর জন্য
+    window.onload = function() {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('success')) {
             document.getElementById('success-message').style.display = 'block';
 
-            // 3 সেকেন্ড পর মেসেজ অটোমেটিকলি হাইড হবে
             setTimeout(() => {
                 document.getElementById('success-message').style.display = 'none';
-                history.replaceState(null, null, window.location.pathname); // URL থেকে success মুছে ফেলা
+                history.replaceState(null, null, window.location.pathname);
             }, 3000);
         }
     }
+
     function closeSuccessMessage() {
-    document.getElementById('success-message').style.display = 'none';
+        document.getElementById('success-message').style.display = 'none';
     }
 </script>
 </body>

@@ -1,4 +1,3 @@
-
 <!-- index.php -->
 <?php
 session_start();
@@ -8,14 +7,12 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-
 if (!isset($_SESSION['auth_user']['id'])) {
     header("Location: login");
     exit();
 }
 
 $user_id = $_SESSION['auth_user']['id'];
-
 
 // Dena & Pawna এর মোট হিসাব
 $total_dena_query = $con->query("SELECT SUM(amount) AS total_dena FROM creditors WHERE user_id = $user_id AND amount < 0");
@@ -32,8 +29,6 @@ $creditors_finished = $con->query("SELECT id, name, amount FROM creditors WHERE 
 $sn = 1;
 $psn = 1;
 $fsn = 1;
-
-
 ?>
 
 <!DOCTYPE html>
@@ -43,6 +38,29 @@ $fsn = 1;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Debt Management</title>
     <link rel="stylesheet" type="text/css" href="css/style.css">
+    <style>
+        .search-bar-wrapper {
+            display: flex;
+            justify-content: flex-end;
+            margin: 15px auto 10px auto;
+            width: 95%;
+            max-width: 1200px;
+        }
+        #creditorSearchInput {
+            padding: 8px 14px;
+            width: 280px;
+            max-width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        #creditorSearchInput:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+        }
+    </style>
 </head>
 <body>
    <?php include 'includes/header.php'; ?> 
@@ -55,28 +73,30 @@ $fsn = 1;
 </div>
 
 <div class="balancesheet">
-  
     <table>
         <tr>
-              <td colspan="4">Balancesheet List</td>
+            <td colspan="4">Balancesheet List</td>
         </tr>
         <tr>
             <th>Last Update</th>
             <th>Total Pawna</th>
             <th>Total Dena</th>
-            
             <th>Total Balance</th>
         </tr>
         <tr>
             <td><?php echo date("d/m/Y"); ?></td>
             <td style="color: green;"><?php echo number_format($total_pawna); ?></td>
             <td style="color: red;"><?php echo number_format($total_dena); ?></td>
-  
             <td style="color: <?php echo ($total_balance > 0) ? 'green' : (($total_balance < 0) ? 'red' : 'black'); ?>;">
                 <?php echo number_format($total_balance); ?>
             </td>
         </tr>
     </table>
+</div>
+
+<!-- 🔍 Live Search Bar -->
+<div class="search-bar-wrapper">
+    <input type="text" id="creditorSearchInput" onkeyup="searchCreditorTables()" placeholder="Search name, type, amount...">
 </div>
 
 <!-- Dena List -->
@@ -96,7 +116,6 @@ $fsn = 1;
         <?php 
         $sn = 1;
         while ($row = $creditors_dena->fetch_assoc()) { 
-            // Database থেকে Passkey নেওয়া
             $query = "SELECT passkey FROM creditors WHERE user_id = ? AND id = ?";
             $stmt = $con->prepare($query);
             $stmt->bind_param("ii", $user_id, $row['id']);
@@ -110,7 +129,7 @@ $fsn = 1;
         ?>
         <tr>
             <td><?php echo $sn++; ?></td>
-            <td><?php echo $row['name']; ?></td>
+            <td><?php echo htmlspecialchars($row['name']); ?></td>
             <td style="color: red;">Dena</td>
             <td style="color: red;"><?php echo number_format($row['amount']); ?></td>
             <td>
@@ -142,7 +161,6 @@ $fsn = 1;
         <?php 
         $psn = 1;
         while ($row = $creditors_pawna->fetch_assoc()) { 
-            // Database থেকে Passkey নেওয়া
             $query = "SELECT passkey FROM creditors WHERE user_id = ? AND id = ?";
             $stmt = $con->prepare($query);
             $stmt->bind_param("ii", $user_id, $row['id']);
@@ -156,7 +174,7 @@ $fsn = 1;
         ?>
         <tr>
             <td><?php echo $psn++; ?></td>
-            <td><?php echo $row['name']; ?></td>
+            <td><?php echo htmlspecialchars($row['name']); ?></td>
             <td style="color: green;">Pawna</td>
             <td style="color: green;"><?php echo number_format($row['amount']); ?></td>
             <td>
@@ -188,7 +206,6 @@ $fsn = 1;
         <?php 
         $fsn = 1;
         while ($row = $creditors_finished->fetch_assoc()) { 
-            // Database থেকে Passkey নেওয়া
             $query = "SELECT passkey FROM creditors WHERE user_id = ? AND id = ?";
             $stmt = $con->prepare($query);
             $stmt->bind_param("ii", $user_id, $row['id']);
@@ -202,10 +219,9 @@ $fsn = 1;
         ?>
         <tr>
             <td><?php echo $fsn++; ?></td>
-            <td><?php echo $row['name']; ?></td>
+            <td><?php echo htmlspecialchars($row['name']); ?></td>
             <td style="color: gray;">Finished</td>
             <td style="color: gray;"><?php echo number_format($row['amount']); ?></td>
-            
             <td>
                 <button class="btn btn-primary copyBtn" 
                     data-link="people.php?user_id=<?php echo $user_id; ?>&people_id=<?php echo $row['id']; ?>&passkey=<?php echo $passkey; ?>">
@@ -217,7 +233,6 @@ $fsn = 1;
         <?php } ?>
     </table>
 </div>
-
 
 <!-- Modal for adding new creditor -->
 <div id="myModal" class="modal">
@@ -233,31 +248,60 @@ $fsn = 1;
 </div>
 
 <script>
-     // Get the modal and buttons
+    // 🔍 Live Search Function (Dena, Pawna, Finished টেবিলের জন্য)
+    function searchCreditorTables() {
+        const input = document.getElementById('creditorSearchInput');
+        const filter = input.value.toLowerCase().trim();
+        const tables = document.querySelectorAll('.denaList table, .pawnaList table, .finishedList table');
+
+        tables.forEach(table => {
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                // টেবিলের টাইটেল ও হেডার রো বাদ দিয়ে শুধু ডাটা রো ফিল্টার হবে
+                if (row.querySelector('th') || row.querySelector('td[colspan]')) {
+                    return;
+                }
+                const cells = row.querySelectorAll('td');
+                // S.N, Name, Type, Amount কলামের টেক্সট চেক করা হচ্ছে
+                const searchableText = [
+                    cells[0]?.innerText || '',
+                    cells[1]?.innerText || '',
+                    cells[2]?.innerText || '',
+                    cells[3]?.innerText || ''
+                ].join(' ').toLowerCase();
+
+                row.style.display = searchableText.includes(filter) ? '' : 'none';
+            });
+        });
+    }
+
+    // Get the modal and buttons
     var modal = document.getElementById("myModal");
     var btn = document.getElementById("addNewBtn");
     var span = document.getElementsByClassName("close")[0];
 
-    // Open the modal
-    btn.onclick = function() {
-        modal.style.display = "block";
+    if (btn) {
+        btn.onclick = function() {
+            modal.style.display = "block";
+        }
     }
 
-    // Close the modal
-    span.onclick = function() {
-        modal.style.display = "none";
-    }
-
-    // Close the modal if the user clicks outside of it
-    window.onclick = function(event) {
-        if (event.target == modal) {
+    if (span) {
+        span.onclick = function() {
             modal.style.display = "none";
         }
     }
 
+    window.addEventListener('click', function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    });
+
     // Handle form submission via AJAX
     document.getElementById("addPersonForm").onsubmit = function(event) {
         event.preventDefault();
+        /* eslint-env browser */
 
         var formData = new FormData(this);
 
@@ -267,7 +311,7 @@ $fsn = 1;
             if (xhr.status == 200) {
                 alert('Person added successfully');
                 modal.style.display = "none";
-                window.location.reload();  // Reload the page to see the new person
+                window.location.reload();
             } else {
                 alert('Something went wrong');
             }
@@ -281,7 +325,7 @@ $fsn = 1;
         copyButtons.forEach(button => {
             button.addEventListener("click", function() {
                 let link = button.getAttribute("data-link");
-                let fullLink = window.location.origin + "/" + link; // সম্পূর্ণ URL তৈরি করা
+                let fullLink = window.location.origin + "/" + link;
 
                 navigator.clipboard.writeText(fullLink).then(() => {
                     alert("Link copied: " + fullLink);
@@ -306,21 +350,20 @@ $fsn = 1;
         document.getElementById('new_passkey').value = randomPasskey;
     }
 
-    // Success Message দেখানোর জন্য
     window.onload = function() {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('success')) {
             document.getElementById('success-message').style.display = 'block';
 
-            // 3 সেকেন্ড পর মেসেজ অটোমেটিকলি হাইড হবে
             setTimeout(() => {
                 document.getElementById('success-message').style.display = 'none';
-                history.replaceState(null, null, window.location.pathname); // URL থেকে success মুছে ফেলা
+                history.replaceState(null, null, window.location.pathname);
             }, 3000);
         }
     }
+
     function closeSuccessMessage() {
-    document.getElementById('success-message').style.display = 'none';
+        document.getElementById('success-message').style.display = 'none';
     }
 </script>
 
