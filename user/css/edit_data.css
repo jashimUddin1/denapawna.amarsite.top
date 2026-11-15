@@ -1,0 +1,140 @@
+/* সাধারণ স্টাইলিং */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f7fc;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    position:relative;
+}
+#backBtn {
+    position:absolute;
+    top:10px;
+    left:10px;
+    text-decoration: none;
+    background-color: aqua;
+    padding: 10px 15px;
+    border-radius: 7px;
+}
+
+h2 {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+
+/* ফর্ম স্টাইলিং */
+.transaction-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+}
+
+.transaction-form .submit-btn {
+    width: 68%; /* Full width */
+    max-width: 850px;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    text-align: center;
+}
+
+.transaction-form .submit-btn:hover {
+    background-color: #45a049;
+}
+
+.input-field {
+    width: 100%;
+    max-width: 400px;
+}
+
+.input-field input, .input-field select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+    margin: 8px 0;
+    box-sizing: border-box;
+}
+
+.input-field input[type="number"] {
+    appearance: textfield; /* For hiding number input arrows in Firefox */
+}
+
+.submit-btn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.submit-btn:hover {
+    background-color: #45a049;
+}
+
+@media (min-width: 900px){
+    .input-field.remark {
+    width: 100%;
+    max-width: 815px;
+}
+}
+
+@media (max-width: 799px) {
+    .transaction-form {
+        flex-direction: column;
+    }
+
+    .input-field {
+        width: 100%;
+        max-width: 600px;
+    }
+
+    h2 {
+        font-size: 20px;
+    }
+    .transaction-form .submit-btn {
+        width: 100%;
+    }
+}
+
+
+.success-message {
+    position: relative;
+    width: 70%;
+    margin: 0px 15% !important;
+    background-color: #d4edda;
+    color: #155724;
+    padding: 10px;
+    border: 1px solid #c3e6cb;
+    border-radius: 5px;
+    text-align: center;
+    display: none;
+}
+.success-message .close-btn {
+    position: absolute;
+    right: 10px;
+    top: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #155724;
+}
